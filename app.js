@@ -1,20 +1,68 @@
-var express = require("express");
-var app = express();
+var express = require("express"),
+    app = express(),
+    bodyParser = require("body-parser"),
+    mongoose = require("mongoose")
 
+mongoose.connect("mongodb://localhost/yelp_camp");
+app.use(bodyParser.urlencoded({extended: true}));
 app.set("view engine", "ejs");
+
+// SCHEMA SETUP
+var campgroundSchema = new mongoose.Schema({
+  name: String,
+  image: String
+});
+
+var Campground = mongoose.model("Campground", campgroundSchema);
+
+// Campground.create(
+//   {
+//     name: "Granite Hill",
+//     image: "https://farm2.staticflickr.com/1071/882242386_ddcd5e0563.jpg"
+//
+//   }, function(err, campground){
+//     if(err){
+//       console.log(err);
+//     } else {
+//       console.log("NEWLY CREATED CAMPGROUND: ");
+//       console.log(campground);
+//     }
+// });
 
 app.get("/", function(req, res){
   res.render("landing");
 });
 
 app.get("/campgrounds", function(req, res){
-  var campgrounds = [
-    {name: "Salmon Creek", image: "https://farm1.staticflickr.com/112/316612921_f23683ca9d.jpg"},
-    {name: "Granite Hill", image: "https://farm2.staticflickr.com/1071/882242386_ddcd5e0563.jpg"},
-    {name: "Mountain Goat's", image: "https://farm4.staticflickr.com/3273/2602356334_20fbb23543.jpg"}
-  ]
+  // Get all campgrounds from DB
+  Campground.find({}, function(err, allCampgrounds){
+    if(err){
+      console.log(err);
+    } else {
+      res.render("campgrounds",{campgrounds:allCampgrounds});
+    }
+  });
 
-  res.render("campgrounds",{campgrounds:campgrounds});
+});
+
+app.post("/campgrounds", function(req, res){
+  // get data from form and add to campgrounds array
+  var name = req.body.name;
+  var image = req.body.image;
+  var newCampground = {name: name, image: image};
+  // Create a new campground and save to DB
+  Campground.create(newCampground, function(err, newlyCreated){
+    if(err){
+      console.log(err);
+    } else {
+      // redirect back to campgrounds page
+      res.redirect("/campgrounds");
+    }
+  });
+});
+
+app.get("/campgrounds/new", function(req, res){
+  res.render("new");
 });
 
 app.listen(3000, function(){
